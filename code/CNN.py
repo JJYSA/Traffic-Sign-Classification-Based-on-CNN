@@ -74,3 +74,43 @@ test_loader = DataLoader(
     batch_size=BATCH_SIZE,
     shuffle=False     # 测试集不需要打乱
 )
+
+# ===================== 6. 构建卷积神经网络模型 =====================
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        # 卷积层1：输入通道（灰度图），输出通道16，卷积核3x3
+        self.conv1 = nn.Conv2d(3, 16, 3, 1)
+        # 池化层：最大池化，缩小图片尺寸（2x2）
+        self.pool = nn.MaxPool2d(2, 2)
+        # 卷积层2：输入通道16，输出通道32，卷积核3x3
+        self.conv2 = nn.Conv2d(16, 32, 3, 1)
+        # 全连接层1：特征展平后输入，输出128维
+        self.fc1 = nn.Linear(32 * 5 * 5, 128)
+        # 全连接层2：输出8维
+        self.fc2 = nn.Linear(128, 8)
+
+    def forward(self, x):
+        """前向传播：定义数据在模型中的流动路径"""
+        # 卷积1 + 激活函数 + 池化
+        x = self.pool(torch.relu(self.conv1(x)))
+        # 卷积2 + 激活函数 + 池化
+        x = self.pool(torch.relu(self.conv2(x)))
+        # 展平：将多维特征图展平为一维向量 (batch_size, 特征数)
+        x = torch.flatten(x, 1)
+        # 全连接层1 + 激活函数
+        x = torch.relu(self.fc1(x))
+        # 全连接层2：输出10个分类的概率
+        x = self.fc2(x)
+        return x
+
+# 实例化模型，并移动到设备（GPU）
+model = CNN().to(device)
+print("\n 模型结构：")
+print(model)
+
+# ===================== 7. 定义损失函数和优化器 =====================
+# 交叉熵损失：分类任务的标准损失函数
+criterion = nn.CrossEntropyLoss()
+# Adam优化器：自动调整学习率，更新模型参数
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
