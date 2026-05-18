@@ -5,7 +5,7 @@
 
 文件目录结构：
 
-data：存放从 Kaggle 下载的 mini-traffic-detection-dataset 数据集。
+data：存放从Kaggle下载的mini-traffic-detection-dataset数据集。
 
 code：放置核心代码文件，包括数据处理、模型定义、训练和预测等。
 
