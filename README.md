@@ -1,7 +1,7 @@
 # Traffic-Sign-Classification-Based-on-ResNet18-TransferLearning
 【基于ResNet18迁移学习的交通标志分类】
 
-最高验证准确率: 92.96%
+最高测试准确率: 94.37%
 
 文件目录结构：
 

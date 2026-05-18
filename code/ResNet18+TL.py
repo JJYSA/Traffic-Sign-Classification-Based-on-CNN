@@ -15,7 +15,7 @@ plt.rcParams['axes.unicode_minus'] = False   # 解决负号变成方框的问题
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"运行设备: {device}")
 
-RESULT_SAVE_PATH = r"D:\GitHub\Traffic-Sign-Classification-Based-on-CNN\results"#请替换您自己的路径
+RESULT_SAVE_PATH = r"D:\GitHub\Traffic-Sign-Classification-Based-on-ResNet18-TransferLearning\results"  #请替换您自己的路径
 os.makedirs(RESULT_SAVE_PATH, exist_ok=True)
 
 # ===================== 超参数 =====================
@@ -23,7 +23,7 @@ BATCH_SIZE = 64
 EPOCHS = 20
 LEARNING_RATE = 0.0001
 
-data_dir = r"D:\GitHub\Traffic-Sign-Classification-Based-on-CNN\data\traffic_detector_dataset"
+data_dir = r"D:\GitHub\Traffic-Sign-Classification-Based-on-ResNet18-TransferLearning\data\traffic_detector_dataset"
 
 train_loss_list = []
 val_loss_list = []
@@ -135,8 +135,7 @@ for epoch in range(EPOCHS):
     train_acc_list.append(avg_train_acc)
     val_acc_list.append(avg_val_acc)
 
-    print(
-        f"训练损失:{avg_train_loss:.3f} | 验证损失:{avg_val_loss:.3f} | 训练准确率:{avg_train_acc:.2%} | 验证准确率:{avg_val_acc:.2%}")
+    print(f"训练损失:{avg_train_loss:.3f} | 验证损失:{avg_val_loss:.3f} | 训练准确率:{avg_train_acc:.2%} | 验证准确率:{avg_val_acc:.2%}")
 
     if avg_val_acc > best_acc:
         best_acc = avg_val_acc
@@ -145,7 +144,7 @@ for epoch in range(EPOCHS):
 #保存最优模型
 model.load_state_dict(best_model)
 torch.save(model.state_dict(), "best_model.pth")
-print(f"\n最佳验证准确率: {best_acc:.2%}")
+print(f"\n最高测试准确率: {best_acc:.2%}")
 
 #保存曲线 & 日志
 plt.figure(figsize=(14, 10))

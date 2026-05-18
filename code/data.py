@@ -12,7 +12,7 @@ print("Path to dataset files:", path)
 #我不想它把数据下到C盘。但是kagglehub默认不支持直接指定路径。遂用移动文件夹的方式实现。
 
 # 自定义目标保存路径
-target_path = r"D:\GitHub\Traffic-Sign-Classification-Based-on-CNN\data"
+target_path = r"/\data"
 #加个"r",使反斜杠不会进行转义
 
 # 遍历下载的文件，移动到指定路径
