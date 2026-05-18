@@ -1,12 +1,24 @@
+#8分类理论随机损失2.079
+# loss一开始20+ >> 2.08 = 说明模型预测比纯瞎猜还要烂，说明可能是反向学习到了错误特征。但至少是能学。
+#最初那一刻的loss是2.079，刚开始训练3轮loss升高，但持续下降
+#第5轮训练完成，平均损失: 1.838，6张准确率16.6%
+#第10轮训练完成，平均损失: 0.339，6张准确率50%难道就是训练批次不够？
+#第20轮训练完成，平均损失: 0.002，6张准确率33.3%不对啊。应该测试整个完整测试集。
+
 import torch
 # 神经网络层、损失函数、优化器等
 import torch.nn as nn
 import torch.optim as optim
+
 from torchvision import datasets, transforms
+#transforms模块提供多种图像变换方法，用于预处理图像数据。
+
 from torch.utils.data import DataLoader
+# 绘图工具：用于显示图片
 import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用Windows自带的黑体显示中文
 plt.rcParams['axes.unicode_minus'] = False   # 解决负号变成方框的问题
+# 进度条工具：训练时显示进度
 from tqdm import tqdm
 import numpy as np
 
@@ -19,29 +31,18 @@ print(f"模型将在: {device} 上运行")
 
 # ===================== 3. 设置训练超参数 =====================
 BATCH_SIZE = 64    # 每次训练喂入模型的图片数量
-#好家伙一个类别总共才21张训练图片
-EPOCHS = 2         # 训练轮数
+EPOCHS = 20         # 训练轮数
 LEARNING_RATE = 0.001  # 学习率
 
 # ===================== 4. 数据预处理 =====================
 # PIL/image格式图片需要转换成张量image + 标准化
 transform = transforms.Compose([
-    transforms.RandomHorizontalFlip(p=0.5),  # 随机水平翻转
-    transforms.RandomRotation(degrees=15),  # 随机旋转 ±15°
-    transforms.ColorJitter(brightness=0.2, contrast=0.2),  # 随机亮度/对比度
-    #数据增强
     transforms.ToTensor(),  # 将PIL图片/ numpy数组 转换为 [0,1] 范围的张量 (通道, 高, 宽)
-    # 通用RGB归一化，不能照抄MNIST(?)
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225])
+    # 通用RGB归一化，不能照抄MNIST！
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    #把图片像素从 [0, 1] 缩放到 [-1, 1]
 ])
 #这段代码本身并不指定处理图像的位置，transform只是定义了对图像的预处理操作。
-
-'''
-这一步要做吗？
-transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-#把图片像素从 [0, 1] 缩放到 [-1, 1]
-'''
 
 data_dir = r"D:\GitHub\Traffic-Sign-Classification-Based-on-CNN\data\traffic_detector_dataset"
 train_dataset = datasets.ImageFolder(f'{data_dir}\\train', transform=transform)
@@ -82,60 +83,36 @@ test_loader = DataLoader(
     batch_size=BATCH_SIZE,
     shuffle=True
 )
-"""
-检查确认数据标签对应正确
-测试代码：
-print("数据集类别：", train_dataset.classes)
-print("类别映射：", train_dataset.class_to_idx)
-print("训练集图片数量：", len(train_dataset))
-才168张，太少了，得数据增强
-"""
 
 # ===================== 6. 构建卷积神经网络模型 =====================
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, 7, 1)
-        #如果in_feature用三个数相乘，一定要加padding，不然矩阵维数对不上
+        self.conv1 = nn.Conv2d(3, 16, 3, 1,1)
+        #一定要加padding，不然矩阵维数对不上
         self.pool1 = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(16, 32, 7, 1)
+        self.conv2 = nn.Conv2d(16, 32, 3, 1,1)
         self.pool2 = nn.MaxPool2d(2, 2)
-        self.conv3 = nn.Conv2d(32, 64, 7, 1)
+        self.conv3 = nn.Conv2d(32, 64, 3, 1,1)
         self.pool3 = nn.MaxPool2d(2, 2)
-        self.conv4 = nn.Conv2d(64, 128, 7, 1)
-        self.pool4 = nn.MaxPool2d(2, 2)
-        self.conv5 = nn.Conv2d(128, 256, 7, 1)
-        self.pool5 = nn.MaxPool2d(2, 2)
-        # 全连接层：特征展平后输入
-        self.fc1 = nn.Linear(58368, 1024)
-        #原本236800输入也太离谱了
-        self.fc2 = nn.Linear(1024, 256)
-        self.fc3 = nn.Linear(256, 64)
-        self.fc4 = nn.Linear(64, 8)
-        #原本的全连接层跨度太离谱了。但是加全连接层会明显增加训练时间。而且loss还是不动啊。
-        '''
-        该用多少层?
-        借鉴AlexNet 
-        输入：224×224×3
-        1. 卷积层总数：5 层 Conv
-        2. 全连接层总数：3 层 FC
-        '''
+        # 全连接层1：特征展平后输入，输出128维。
+        #初始图像尺寸为600×800，经过三次2×2、步长为2的最大池化操作后得到75×100
+        self.fc1 = nn.Linear(64 * 75 * 100, 256)
+        # 全连接层2：输出8维
+        self.fc2 = nn.Linear(256, 8)
+
     def forward(self, x):
         """前向传播：定义数据在模型中的流动路径"""
         # 卷积 + 激活函数 + 池化
         x = self.pool1(torch.relu(self.conv1(x)))
         x = self.pool2(torch.relu(self.conv2(x)))
         x = self.pool3(torch.relu(self.conv3(x)))
-        x = self.pool4(torch.relu(self.conv4(x)))
-        x = self.pool5(torch.relu(self.conv5(x)))
         # 展平：将多维特征图展平为一维向量 (batch_size, 特征数)
         x = torch.flatten(x, 1)
         # 全连接层1 + 激活函数
         x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
-        # 全连接层输出8个分类的概率
-        x = self.fc4(x)
+        # 全连接层2：输出8个分类的概率
+        x = self.fc2(x)
         return x
 
 # 实例化模型，并移动到设备（GPU）
@@ -229,9 +206,8 @@ def infer_and_show_test_images(model, loader, device):
         # 调整维度顺序
         img = img.transpose((1, 2, 0))
         #img是numpy.ndarray类型
-        '''#反归一化，归一化，转了[-1, 1]后得做这一步逆运算，否则会变得很昏暗
+        #反归一化，归一化，转了[-1, 1]后得做这一步逆运算，否则会变得很昏暗
         img = (img * 0.5) + 0.5
-        '''
         plt.imshow(img)
         #因为plt.imshow() 期望的图像数据形状是 (height, width, channels)，而原始传入的图像img数据形状是 (channels, height, width)
         # 标题：真实值/预测值
@@ -253,7 +229,7 @@ def infer_and_show_test_images(model, loader, device):
         else:
             res += " ❌ 错误"
         print(res)
-    print(f"\n6张图片准确率: {correct/6*100:.2f}%")
+    print(f"\n6张图片准确率: {correct/30*100:.2f}%")
 
 # 调用推理函数
 infer_and_show_test_images(model, test_loader, device)
